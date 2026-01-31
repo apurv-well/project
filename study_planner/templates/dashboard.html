@@ -13,8 +13,9 @@
         <nav>
             <div class="logo">Study Planner</div>
             <div class="nav-links">
-                <span>Welcome, Student!</span>
-                <a href="{{ url_for('home') }}" class="btn">Logout</a>
+                <span>Welcome, {{ user if user else 'Student' }}!</span>
+                <a href="{{ url_for('profile') }}" class="btn">My Profile</a>
+                <a href="{{ url_for('logout') }}" class="btn">Logout</a>
             </div>
         </nav>
     </header>
@@ -23,9 +24,31 @@
         <h1>My Dashboard</h1>
         <div class="dashboard-content">
             <div class="card">
-                <h3>Current Study Plan</h3>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                    <h3>My Study Plans</h3>
+                    <a href="{{ url_for('create_plan') }}" class="btn btn-small btn-primary">+ New Plan</a>
+                </div>
+
+                {% if plans %}
+                <ul class="plan-list">
+                    {% for plan in plans %}
+                    <li style="border-bottom: 1px solid #eee; padding: 1rem 0;">
+                        <strong>{{ plan.title }}</strong>
+                        <p style="color: #666; font-size: 0.9rem; margin: 0.2rem 0;">{{ plan.goal }}</p>
+                        <small>From {{ plan.start_date }} to {{ plan.end_date }}</small>
+                        <div style="margin-top: 0.5rem;">
+                            <!-- Placeholder for View/Edit links -->
+                            <a href="#" style="color: var(--primary-color); font-size: 0.9rem;">View Details</a>
+                        </div>
+                    </li>
+                    {% endfor %}
+                </ul>
+                {% else %}
                 <p>You have no active study plans yet.</p>
-                <button class="btn btn-small">Create New Plan</button>
+                <div style="margin-top: 1rem;">
+                    <a href="{{ url_for('create_plan') }}" class="btn btn-small">Create Your First Plan</a>
+                </div>
+                {% endif %}
             </div>
 
             <div class="card">
