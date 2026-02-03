@@ -39,7 +39,8 @@
             <p>The AI Agent cannot save your study plans because the <code>tasks</code> table is missing in your
                 Supabase project.</p>
             <p style="margin-top: 0.5rem;">To fix this, please run the SQL code from <code>schema.sql</code> in your
-                <strong>Supabase SQL Editor</strong>.</p>
+                <strong>Supabase SQL Editor</strong>.
+            </p>
         </div>
         {% endif %}
 
@@ -74,10 +75,85 @@
             </div>
 
             <div class="card">
-                <h3>Progress</h3>
-                <p>Track your learning journey here.</p>
+                <h3>Today's Learning Targets</h3>
+                {% if today_tasks %}
+                <ul class="task-list" style="list-style: none; padding: 0;">
+                    {% for task in today_tasks %}
+                    <li id="task-{{ task.id }}" class="task-item {% if task.is_completed %}completed{% endif %}"
+                        style="display: flex; align-items: center; padding: 1rem; border-bottom: 1px solid #eee; background: {{ '#f8fafc' if task.is_completed else 'white' }}; border-radius: 8px; margin-bottom: 0.5rem; transition: all 0.2s ease;">
+                        <input type="checkbox" class="task-checkbox" {% if task.is_completed %}checked{% endif %}
+                            onchange="toggleTask('{{ task.id }}', this.checked)"
+                            style="margin-right: 1rem; width: 1.25rem; height: 1.25rem; cursor: pointer; accent-color: var(--primary-color);">
+                        <div style="flex-grow: 1;">
+                            <div class="task-desc"
+                                style="font-weight: 500; font-size: 0.95rem; color: #1e293b; {{ 'text-decoration: line-through; color: #94a3b8;' if task.is_completed }}">
+                                {{ task.description.replace('[Easy]', '').replace('[Medium]', '').replace('[Hard]',
+                                '').strip() }}
+                            </div>
+                            <div
+                                style="font-size: 0.75rem; color: #64748b; margin-top: 2px; display: flex; align-items: center; gap: 0.5rem;">
+                                <span
+                                    style="background: #eff6ff; color: #3b82f6; padding: 1px 6px; border-radius: 4px; font-weight: 600; text-transform: uppercase;">{{
+                                    task.subject_name }}</span>
+                                {% if 'Easy' in task.description %}
+                                <span class="badge"
+                                    style="background: #f0fdf4; color: #15803d; border: none; font-size: 0.65rem;">EASY</span>
+                                {% elif 'Medium' in task.description %}
+                                <span class="badge"
+                                    style="background: #fffbeb; color: #b45309; border: none; font-size: 0.65rem;">MEDIUM</span>
+                                {% else %}
+                                <span class="badge"
+                                    style="background: #fef2f2; color: #b91c1c; border: none; font-size: 0.65rem;">HARD</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </li>
+                    {% endfor %}
+                </ul>
+                {% else %}
+                <div style="text-align: center; padding: 2rem 1rem;">
+                    <div style="font-size: 2rem; margin-bottom: 1rem;">🎯</div>
+                    <p style="color: #64748b; font-size: 0.95rem;">No tasks scheduled for today.</p>
+                    <p style="color: #94a3b8; font-size: 0.85rem; margin-top: 0.5rem;">Take a break or check your full
+                        schedule in "View Details".</p>
+                </div>
+                {% endif %}
             </div>
         </div>
+
+        <script>
+            function toggleTask(taskId, isChecked) {
+                const item = document.getElementById(`task-${taskId}`);
+
+                fetch(`/toggle_task/${taskId}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ completed: isChecked })
+                })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            if (isChecked) {
+                                item.classList.add('completed');
+                                item.style.background = '#f8fafc'; // Keep for visual immediate feedback if needed, but class should handle it
+                            } else {
+                                item.classList.remove('completed');
+                                item.style.background = 'white';
+                            }
+                        } else {
+                            alert('Error updating task: ' + data.error);
+                            document.querySelector(`#task-${taskId} .task-checkbox`).checked = !isChecked;
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        alert('Connection error');
+                        document.querySelector(`#task-${taskId} .task-checkbox`).checked = !isChecked;
+                    });
+            }
+        </script>
 
         <div class="ml-notice">
             <p><em>Coming Soon: AI-driven study recommendations based on your learning pace!</em></p>

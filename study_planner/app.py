@@ -1,5 +1,6 @@
 from flask import Flask, render_template, request, redirect, url_for, session, flash
 from database.db import get_db_connection
+from datetime import datetime
 
 app = Flask(__name__)
 
@@ -127,14 +128,36 @@ def dashboard():
         return redirect(url_for('login'))
     
     plans = []
+    today_tasks = []
     try:
         supabase = get_db_connection(session.get('access_token'))
         user_id = session.get('user_id')
         if user_id:
+             # Fetch plans
              response = supabase.table('study_plans').select("*").eq('user_id', user_id).order('created_at', desc=True).execute()
              plans = response.data
+             
+             if plans:
+                 # Fetch today's tasks
+                 plan_ids = [p['id'] for p in plans]
+                 today_str = datetime.now().date().isoformat()
+                 
+                 # First get subject IDs for these plans
+                 subjects_res = supabase.table('subjects').select("id, name").in_('plan_id', plan_ids).execute()
+                 if subjects_res.data:
+                     sub_ids = [s['id'] for s in subjects_res.data]
+                     sub_map = {s['id']: s['name'] for s in subjects_res.data}
+                     
+                     # Then get tasks for today for these subjects
+                     tasks_res = supabase.table('tasks').select("*").in_('subject_id', sub_ids).eq('due_date', today_str).execute()
+                     today_tasks = tasks_res.data
+                     
+                     # Add subject name to each task
+                     for task in today_tasks:
+                         task['subject_name'] = sub_map.get(task['subject_id'], "Unknown")
+
     except Exception as e:
-        print(f"Error fetching plans: {e}")
+        print(f"Error fetching dashboard data: {e}")
         
     db_healthy = True
     try:
@@ -146,7 +169,11 @@ def dashboard():
         if "PGRST204" in str(e) or "404" in str(e) or "tasks" in str(e).lower():
             db_healthy = False
 
-    return render_template('dashboard.html', user=session['user'], plans=plans, db_healthy=db_healthy)
+    return render_template('dashboard.html', 
+                           user=session['user'], 
+                           plans=plans, 
+                           today_tasks=today_tasks,
+                           db_healthy=db_healthy)
 
 @app.route('/profile', methods=['GET', 'POST'])
 def profile():
