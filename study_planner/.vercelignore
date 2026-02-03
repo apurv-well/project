@@ -1,0 +1,9 @@
+.vercel_cache
+.env
+__pycache__
+*.pyc
+.gitignore
+.git
+env/
+venv/
+.DS_Store
